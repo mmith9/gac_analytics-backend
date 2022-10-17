@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.data_classes import *
 from app.data_types import *
 from app.db_objects import MyDb
+from app.dcs_per_season import dcs_per_season
 from app.fetch_gac_data import *
 from app.fetch_units_dict import *
 
@@ -13,6 +14,8 @@ from pprint import PrettyPrinter
 
 import logging
 import logging.config
+
+from app.popular_leaders import popular_leaders
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger(__name__)
 
@@ -79,7 +82,19 @@ async def fetch_gac_data_route(*, response: Response ,request: Request ,gac_requ
     #validation = fetch_gac_data_validate(data)
     data = fetch_gac_data(gac_request, my_db)
 
-    pp.pprint(data)
+    #pp.pprint(data)
 
     return data
    
+@app.get("/dcs_per_season/{season}") 
+async def dcs_per_season_route(season:int) -> GacSeasonList:
+    print('@app.get("/dcs_per_season/{season}") ')
+    data = dcs_per_season(season, my_db)
+    return data
+
+
+@app.get("/popular_leaders")
+async def popular_leaders_route() -> PopularLeaders:
+    print('@app.get("/popular_leaders")')
+    data = popular_leaders(my_db)
+    return data

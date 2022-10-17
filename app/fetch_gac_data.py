@@ -17,7 +17,8 @@ def fetch_gac_data_validate(data):
 def fetch_gac_data(gac_request: GacDataRequest, my_db:MyDb)-> list[GacBattle] :
     #logger.debug('entered fetch_gac_data')
     #print(gac_request)
-    if gac_request.season.type == '3v3':
+
+    if gac_request.season.type.find('3v3') >=0:
         battles_table = 'battles3v3 '
         unit_limit = 3
         all_columns = 'd1, d2, d3, a1, a2, a3 '
@@ -30,6 +31,10 @@ def fetch_gac_data(gac_request: GacDataRequest, my_db:MyDb)-> list[GacBattle] :
         include_def = ' in (d2, d3, d4, d5) '
         include_att = ' in (a2, a3, a4, a5) '
 
+    gac_nums=''
+    for gac_num in gac_request.season.rounds:
+        gac_nums+=str(gac_num) + ','
+    gac_nums=gac_nums[:-1] 
     if 'cutoff' in gac_request:
         cutoff = gac_request.cutoff
     else:
@@ -42,11 +47,12 @@ def fetch_gac_data(gac_request: GacDataRequest, my_db:MyDb)-> list[GacBattle] :
     query+= 'round(avg(case when banners > 0 then banners end), 2) as avg_banners, '
     query+= all_columns
     query+= 'from ' + battles_table
-    query+= 'where '
-    query+= 'd1 = ' + str(gac_request.defenders.leader.unit_id)
+    query+= 'where bt_gac_num in (' + gac_nums + ') '
 
-    for unit in gac_request.defenders.members[1:]:
-        query+= ' and ' + str(unit.unit_id) + include_def
+    if gac_request.defenders:
+        query+= ' and d1 = ' + str(gac_request.defenders.leader.unit_id)
+        for unit in gac_request.defenders.members[1:]:
+            query+= ' and ' + str(unit.unit_id) + include_def
 
     if gac_request.attackers:
         query += ' and a1 = ' + str(gac_request.attackers.leader.unit_id)
@@ -55,7 +61,7 @@ def fetch_gac_data(gac_request: GacDataRequest, my_db:MyDb)-> list[GacBattle] :
     
     query+= ' group by ' + all_columns
     query+= ' having count_all > ' + str(cutoff) + ' '
-    query+= ' order by win_percent desc'
+    query+= ' order by win_percent desc, avg_banners desc'
 
     logger.debug('\nprepared query: \n%s', query)
     

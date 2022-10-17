@@ -1,3 +1,5 @@
+from ast import List
+from typing import Dict, Tuple
 from pydantic import BaseModel
 
 class Unit(BaseModel):
@@ -32,20 +34,37 @@ class CC(BaseModel):
 class GacDataRequest(BaseModel):
     season:GacSeason
     attackers: Team | None 
-    defenders: Team 
+    defenders: Team | None
     constraints: list[CC] | None
     cutoff: int | None
 
+class DatacronCC(BaseModel):
+    side: str | None
+    ability_3: int | None
+    ability_6: int | None    
+    ability_9: int | None
+    stat: int | None
+    stat_limit : int | None
+
 class GacBattleData(BaseModel):
     battles: list[GacBattle]
-    cc: CC | None
+    cc: DatacronCC | CC | None
     battlesCCin:  list[dict] | None  # recursion is not supported fully
     battlesCCout: list[dict] | None
 
+class DCSLRow(BaseModel):
+    id: int
+    count: int
+    long_desc: str
 
+class DCSeasonList(BaseModel):
+    season:int
+    l3: list[DCSLRow]
+    l6: list[DCSLRow]
+    l9: list[DCSLRow]
 
-
-
-
+class PopularLeaders(BaseModel):
+    attackers: list[int]
+    defenders: list[int]
 
 
