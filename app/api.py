@@ -9,13 +9,14 @@ from app.db_objects import MyDb
 from app.dcs_per_season import dcs_per_season
 from app.fetch_gac_data import *
 from app.fetch_units_dict import *
+from app.precalcs import *
 
 from pprint import PrettyPrinter
 
 import logging
 import logging.config
 
-from app.popular_leaders import popular_leaders
+#from app.popular_leaders import popular_leaders
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,10 @@ pp = PrettyPrinter()
 app = FastAPI()
 my_db = MyDb()
 my_db.connect()
+
+create_precalc_tables(my_db)
+populate_precalc_tables(my_db)
+
 
 
 app.add_middleware(
@@ -93,8 +98,14 @@ async def dcs_per_season_route(season:int) -> GacSeasonList:
     return data
 
 
-@app.get("/popular_leaders")
-async def popular_leaders_route() -> PopularLeaders:
-    print('@app.get("/popular_leaders")')
-    data = popular_leaders(my_db)
+# @app.get("/popular_leaders")
+# async def popular_leaders_route() -> PopularLeaders:
+#     print('@app.get("/popular_leaders")')
+#     data = popular_leaders(my_db)
+#     return data
+
+@app.get("/precalcs")
+async def precalcs_route(season:int, item_type:str):
+    print('@app.get("/precalcs")')
+    data = precalcs(my_db, season, item_type)
     return data

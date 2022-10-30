@@ -7,6 +7,7 @@ class Unit(BaseModel):
     image_url:str
     unit_id:str
     base_id:str
+    count: int | None
     
 class Team(BaseModel):
     leader: Unit
@@ -63,8 +64,20 @@ class DCSeasonList(BaseModel):
     l6: list[DCSLRow]
     l9: list[DCSLRow]
 
-class PopularLeaders(BaseModel):
-    attackers: list[int]
-    defenders: list[int]
+#class PopularLeaders(BaseModel):
+#    attackers: list[int]
+#    defenders: list[int]
+
+class PORow(BaseModel):
+    id: int
+    count: int
+    name: str 
+    opt1: str | None
+
+class PrecalcObject(BaseModel):
+    season: int
+    item_type: str
+    payload: list[PORow]
+
 
 
