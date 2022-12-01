@@ -3,3 +3,6 @@
 /rq.txt
 /venv
 /xxx.log
+app/__pycache__
+app/__pycache__/data_classes.cpython-310.pyc
+app/__pycache__/precalcs.cpython-310.pyc

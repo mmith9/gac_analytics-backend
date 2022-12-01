@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.data_classes import *
 from app.data_types import *
 from app.db_objects import MyDb
-from app.dcs_per_season import dcs_per_season
+#from app.dcs_per_season import dcs_per_season
 from app.fetch_gac_data import *
 from app.fetch_units_dict import *
 from app.precalcs import *
@@ -25,8 +25,8 @@ app = FastAPI()
 my_db = MyDb()
 my_db.connect()
 
-create_precalc_tables(my_db)
-populate_precalc_tables(my_db)
+#create_precalc_tables(my_db)
+#populate_precalc_tables(my_db)
 
 
 
@@ -91,11 +91,11 @@ async def fetch_gac_data_route(*, response: Response ,request: Request ,gac_requ
 
     return data
    
-@app.get("/dcs_per_season/{season}") 
-async def dcs_per_season_route(season:int) -> GacSeasonList:
-    print('@app.get("/dcs_per_season/{season}") ')
-    data = dcs_per_season(season, my_db)
-    return data
+# @app.get("/dcs_per_season/{season}") 
+# async def dcs_per_season_route(season:int) -> GacSeasonList:
+#     print('@app.get("/dcs_per_season/{season}") ')
+#     data = dcs_per_season(season, my_db)
+#     return data
 
 
 # @app.get("/popular_leaders")

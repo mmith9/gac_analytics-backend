@@ -31,8 +31,9 @@ class MyDb:
             self.cursor = self.connection.cursor()
             
             logger.debug('connected to db')
-        except mysql.connector.Error:
+        except mysql.connector.Error as err:
             
             logger.critical('Connection to db failed')
+            logger.critical(err)
 
 
