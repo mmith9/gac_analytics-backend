@@ -26,7 +26,7 @@ my_db = MyDb()
 my_db.connect()
 
 #create_precalc_tables(my_db)
-#populate_precalc_tables(my_db)
+populate_precalc_tables(my_db)
 
 
 
@@ -102,7 +102,7 @@ async def fetch_gac_data_route(*, response: Response ,request: Request ,gac_requ
 # async def popular_leaders_route() -> PopularLeaders:
 #     print('@app.get("/popular_leaders")')
 #     data = popular_leaders(my_db)
-#     return data
+#     return data 
 
 @app.get("/precalcs")
 async def precalcs_route(season:int, item_type:str):

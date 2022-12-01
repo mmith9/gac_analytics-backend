@@ -26,7 +26,8 @@ class GacBattle(BaseModel):
 
 class StatLimit(BaseModel):
     stat_id: int
-    stat_limit: int
+    stat_min: int
+    stat_max: int
     stat_name: str | None
 
 class DatacronCC(BaseModel):
