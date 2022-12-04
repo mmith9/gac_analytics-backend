@@ -34,7 +34,7 @@ class DatacronCC(BaseModel):
     ability_3: int | None
     ability_6: int | None
     ability_9: int | None
-    stat_limits: list[StatLimit] | None
+    stat_limits: list[StatLimit]
 
 
 class Team(BaseModel):
@@ -70,12 +70,17 @@ class GacBattleData(BaseModel):
 #    attackers: list[int]
 #    defenders: list[int]
 
+class Freq(BaseModel):
+    id: int
+    count: int
+
 class PORow(BaseModel):
     id: int
     count: int
-    name: str 
+    name: str | None
     max_value: float | None
     opt1: str | None
+    units: list[Freq] | None
 
 class PrecalcObject(BaseModel):
     season: int

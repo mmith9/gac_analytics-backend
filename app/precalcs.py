@@ -7,9 +7,10 @@ import logging.config
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger(__name__)
 
-def precalcs(mydb:MyDb, season:int, item_type:str) -> PrecalcObject:
+def precalcs(mydb:MyDb, season:int, item_type:str, leader:int) -> PrecalcObject:
     cursor = mydb.cursor
     data : PrecalcObject = {'season':season, 'item_type':item_type, 'payload':[]}
+
 
     if item_type in ['att_lead', 'def_lead']:
         # obsolete
@@ -25,8 +26,8 @@ def precalcs(mydb:MyDb, season:int, item_type:str) -> PrecalcObject:
         #     logger.critical('unknown gac type %s', map_id)
 
         query = '''
-            select unit_id, lead_count, name from prc_units
-            where season = %s and side = %s
+            select unit_id, count from prc_units
+            where season = %s and side = %s and leader is null
         '''
         side = item_type[0]
         logger.debug('query %s', query)
@@ -35,10 +36,29 @@ def precalcs(mydb:MyDb, season:int, item_type:str) -> PrecalcObject:
 
         rows = cursor.fetchall()
         for row in rows:
-            data_row: PORow = {'id':row[0], 'count':row[1], 'name':row[2]}
+            data_row: PORow = {'id':row[0], 'count':row[1]}
             data['payload'].append(data_row)
         
         return data
+
+    if item_type in ['att_units_per_lead', 'def_units_per_lead'] :
+        query = '''
+            select unit_id, count from prc_units
+            where season = %s and side = %s and leader = %s
+        '''
+
+        side = item_type[0]
+        logger.debug('query %s', query)
+        logger.debug('params %s %s',season, side)
+        cursor.execute(query, (season, side, leader))
+
+        rows = cursor.fetchall()
+        for row in rows:
+            data_row: PORow = {'id':row[0], 'count':row[1]}
+            data['payload'].append(data_row)
+        
+        return data
+
     
     if item_type in ['dc_ability_3', 'dc_ability_6', 'dc_ability_9']:
         dc_ab_level = int(item_type[-1])
@@ -56,7 +76,7 @@ def precalcs(mydb:MyDb, season:int, item_type:str) -> PrecalcObject:
     if item_type in ['dc_all_stats']:
         query='''
         select dc_stat_num, count, name, max_value from prc_dc_stats 
-        where season = %s 
+        where season = %s order by count desc
         '''
 
         cursor.execute(query, (season,))
@@ -71,26 +91,10 @@ def precalcs(mydb:MyDb, season:int, item_type:str) -> PrecalcObject:
 
     return False
 
-def create_precalc_tables(mydb:MyDb) -> None:
-    logger.debug('dropping old tables')
-    query = 'drop table prc_units'
-    try:
-        mydb.cursor.execute(query)
-    except mysql.connector.errors.ProgrammingError:
-        pass
 
-    query = '''
-        create table prc_units (
-        id          int primary key auto_increment,
-        unit_id     int,
-        lead_count  int,
-        season      int,
-        base_id     varchar(50),
-        name        text,
-        image_url   text,
-        side        char(1) )'''
-    mydb.cursor.execute(query)
-    mydb.connection.commit()
+
+def create_precalc_tables(mydb: MyDb) -> None:
+    logger.debug('dropping old tables')
 
     query = 'drop table prc_zuo'
     try:
@@ -146,48 +150,93 @@ def create_precalc_tables(mydb:MyDb) -> None:
 
 def populate_precalc_tables(mydb:MyDb) -> None:
     logger.debug('populating precalc tables')
-    # populate_precalc_tables_units(mydb)
+    #populate_precalc_tables_units(mydb)
     # populate_precalc_tables_zuo(mydb)
     # populate_precalc_tables_datacrons_abilities(mydb)
     # populate_precalc_tables_datacrons_stats(mydb)
 
     logger.debug('done precalculating tables')
     return
-    
+
+
+def create_precalc_table_units(mydb: MyDb) -> None:
+    logger.debug('dropping units table')
+    query = 'drop table prc_units'
+    try:
+        mydb.cursor.execute(query)
+    except mysql.connector.errors.ProgrammingError:
+        pass
+
+    query = '''
+        create table prc_units (
+        id          int primary key auto_increment,
+        unit_id     smallint,
+        count       mediumint,
+        season      smallint,
+        side        char(1),
+        leader      smallint default null
+        )'''
+    mydb.cursor.execute(query)
+    mydb.connection.commit()
 
 def populate_precalc_tables_units(mydb: MyDb) -> None:
-    query = 'truncate prc_units'
-    mydb.cursor.execute(query)
-
+    create_precalc_table_units(mydb)
     query ='''
         insert into prc_units 
-            (unit_id, lead_count, season, base_id, name, image_url, side)
+            (unit_id, count, season, side)
         
         select 
-            ud.unit_id,
+            battlesv2.a1,
             count(*) as cnt_all, 
             swgohgg_gac_season as season,
-            ud.base_id,
-            ud.name, 
-            ud.image_url,
             'a'
         from
             gac_events ge
             inner join battlesv2 on(swgohgg_gac_num=bt_gac_num)
-            inner join unit_dict ud on(ud.unit_id=battlesv2.a1)
             where battlesv2.attempt = 1
             group by season, battlesv2.a1
             order by cnt_all desc'''
     logger.debug('populating prc_units')
     mydb.cursor.execute(query)
-    logger.debug('query %s', query)
+    #logger.debug('query %s', query)
 
     for sub in [('.a1', '.d1'), ("'a'", "'d'")]:
             query = query.replace(sub[0], sub[1])
     logger.debug('populating prc_units')
-    logger.debug('query %s', query)
+    #logger.debug('query %s', query)
     mydb.cursor.execute(query)
     mydb.connection.commit()
+   
+    logger.debug('populating prc_units part2')
+    query = '''
+        insert into prc_units
+            (unit_id, count, season, side, leader)
+        
+        select
+            ud.unit_id as unit,
+            count(*) as cnt,
+            swgohgg_gac_season as season,
+            'a' as side,
+            bv2.a1 as leader
+        from            
+            battlesv2 bv2
+            inner join unit_dict ud on (ud.unit_id in (bv2.a2, bv2.a3, bv2.a4, bv2.a5))
+            inner join gac_events ge on (ge.swgohgg_gac_num = bt_gac_num)
+        where 
+            attempt = 1 
+        group by
+            season, leader, unit
+        order by
+	        leader asc, cnt desc      
+    '''
+    mydb.cursor.execute(query)
+
+    for sub in [('bv2.a', 'bv2.d'), ("'a'", "'d'")]:
+        query = query.replace(sub[0], sub[1])
+    logger.debug('populating prc_units part2')
+    mydb.cursor.execute(query)
+    mydb.connection.commit()
+
 
 
 def populate_precalc_tables_zuo(mydb: MyDb) -> None:

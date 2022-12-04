@@ -25,9 +25,7 @@ app = FastAPI()
 my_db = MyDb()
 my_db.connect()
 
-#create_precalc_tables(my_db)
 populate_precalc_tables(my_db)
-
 
 
 app.add_middleware(
@@ -105,7 +103,7 @@ async def fetch_gac_data_route(*, response: Response ,request: Request ,gac_requ
 #     return data 
 
 @app.get("/precalcs")
-async def precalcs_route(season:int, item_type:str):
+async def precalcs_route(season:int, item_type:str, leader:int |None = 0):
     print('@app.get("/precalcs")')
-    data = precalcs(my_db, season, item_type)
+    data = precalcs(my_db, season, item_type, leader)
     return data
