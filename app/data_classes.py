@@ -1,5 +1,5 @@
-from ast import List
-from typing import Dict, Tuple
+
+
 from pydantic import BaseModel
 
 class Unit(BaseModel):
@@ -44,9 +44,10 @@ class Freq(BaseModel):
 
 class PORow(BaseModel):
     id: int
-    count: int
+    count: int | None
     name: str | None
     max_value: float | None
+    min_value: float | None
     opt1: str | None
     units: list[Freq] | None
 
@@ -57,8 +58,28 @@ class PrecalcObject(BaseModel):
 
 
 # frontent classes, also data request model
+class Zuo(BaseModel):
+    zuo_id: int
+    zuo_name: str
 
+class DcMechanic(BaseModel):
+    dc_mc_id: int
+    dc_mc_name: str
 
+class UnitStat(BaseModel):
+    us_id: str
+    us_name: str
+
+class DcStat(BaseModel):
+    ds_id: int
+    ds_name: str
+
+class DictBundle(BaseModel):
+    unit_dict: list[Unit]
+    zuo_dict: list[Zuo]
+    dc_mc_dict: list[DcMechanic]
+    unit_stat_dict: list[UnitStat]
+    dc_stat_dict: list[DcStat]
 
 class StatLimit(BaseModel):
     stat_id: int

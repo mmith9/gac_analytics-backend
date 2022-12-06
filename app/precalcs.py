@@ -1,6 +1,6 @@
 from app.db_objects import MyDb
 from app.data_classes import *
-from app.AllDatacronStats import AllDatacronStats
+from app.fetch_dictionaries import AllDatacronStats, AllUnitStats
 import mysql.connector
 import logging
 import logging.config
@@ -11,20 +11,7 @@ def precalcs(mydb:MyDb, season:int, item_type:str, leader:int) -> PrecalcObject:
     cursor = mydb.cursor
     data : PrecalcObject = {'season':season, 'item_type':item_type, 'payload':[]}
 
-
     if item_type in ['att_lead', 'def_lead']:
-        # obsolete
-        # query = 'select cg_territory_map_id from gac_events where swgohgg_gac_season = %s'
-        # cursor.execute(query,(season,))
-        # rows = cursor.fetchall()
-        # map_id = rows[0][0]
-        # if map_id.find('5v5')>=0:
-        #     gac_type = '5v5'
-        # elif map_id.find('3v3') >= 0:
-        #     gac_type = '3v3'
-        # else:
-        #     logger.critical('unknown gac type %s', map_id)
-
         query = '''
             select unit_id, count from prc_units
             where season = %s and side = %s and leader is null
@@ -85,8 +72,6 @@ def precalcs(mydb:MyDb, season:int, item_type:str, leader:int) -> PrecalcObject:
             data_row: PORow = {'id': row[0], 'count': row[1], 'name': row[2], 'max_value': row[3]}
             data['payload'].append(data_row)
         return data
-
-      
     
 
     return False
@@ -154,6 +139,7 @@ def populate_precalc_tables(mydb:MyDb) -> None:
     # populate_precalc_tables_zuo(mydb)
     # populate_precalc_tables_datacrons_abilities(mydb)
     # populate_precalc_tables_datacrons_stats(mydb)
+    # populate_precalcs_tables_unit_stats(mydb)
 
     logger.debug('done precalculating tables')
     return
@@ -236,8 +222,6 @@ def populate_precalc_tables_units(mydb: MyDb) -> None:
     logger.debug('populating prc_units part2')
     mydb.cursor.execute(query)
     mydb.connection.commit()
-
-
 
 def populate_precalc_tables_zuo(mydb: MyDb) -> None:
     query = 'truncate prc_zuo'
@@ -331,4 +315,51 @@ def populate_precalc_tables_datacrons_stats(mydb: MyDb) -> None:
         logger.debug('populating prc_dc_stats for: %s', stat_num)
         mydb.cursor.execute(query)
     logger.debug('commiting dc stats')
+    mydb.connection.commit()
+
+def populate_precalcs_tables_unit_stats(mydb: MyDb) -> None:
+    create_precalc_table_unit_stats(mydb)
+    stats_object = AllUnitStats()
+    stats = stats_object.stats
+    logger.debug('populating prc_unit_stats')
+    for stat_id in stats:
+        col_name = stats[stat_id]
+        logger.debug('  sub step %s', col_name)
+        query = f'''
+        insert into prc_unit_stats 
+            (unit_id, stat_id, season, min_val, max_val) 
+        select
+            ud.unit_id, 
+            {stat_id} as stat_id,
+            swgohgg_gac_season as season,
+            min({col_name}),
+            max({col_name})
+        from
+            gac_events ge        
+            inner join unit_stats us on (ge.swgohgg_gac_num = us.us_gac_num) 
+            inner join unit_dict ud on (ud.unit_id = us.us_unit_id) 
+            group by season, unit_id
+       
+        '''
+        mydb.cursor.execute(query)
+        mydb.connection.commit()
+
+def create_precalc_table_unit_stats(mydb:MyDb) -> None:
+    logger.debug('dropping prc_unit_stats table')
+    query = 'drop table prc_unit_stats'
+    try:
+        mydb.cursor.execute(query)
+    except mysql.connector.errors.ProgrammingError:
+        pass
+
+    query = '''
+        create table prc_unit_stats (
+        id          int primary key auto_increment,
+        unit_id     smallint,
+        stat_id     tinyint,
+        season      smallint,
+        min_val     int,
+        max_val     int
+        )'''
+    mydb.cursor.execute(query)
     mydb.connection.commit()

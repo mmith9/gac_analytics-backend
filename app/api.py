@@ -2,13 +2,13 @@ import json
 from fastapi import Body, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-
 from app.data_classes import *
 from app.data_types import *
 from app.db_objects import MyDb
-#from app.dcs_per_season import dcs_per_season
+from app.fetch_dictionaries import fetch_dictionaries
+
 from app.fetch_gac_data import *
-from app.fetch_units_dict import *
+
 from app.precalcs import *
 
 from pprint import PrettyPrinter
@@ -46,11 +46,18 @@ async def read_root():
     print('get / path')
     return 'A root dir'
 
-@app.get("/characters")
-async def characters_route() -> list[Unit]:
-    print('@app.get("/characters")')
-    units = fetch_units_dict(my_db)
-    return units
+
+@app.get("/dictionaries")
+async def dictionaries_route() -> DictBundle:
+    print('@app.get("/dictionaries")')
+    data = fetch_dictionaries(my_db)
+    return data
+
+# @app.get("/characters")
+# async def characters_route() -> list[Unit]:
+#     print('@app.get("/characters")')
+#     units = fetch_units_dict(my_db)
+#     return units
 
 @app.get("/gac_events")
 async def read_events() -> dict:
@@ -107,3 +114,9 @@ async def precalcs_route(season:int, item_type:str, leader:int |None = 0):
     print('@app.get("/precalcs")')
     data = precalcs(my_db, season, item_type, leader)
     return data
+
+# @app.get("/all_unit_stats")
+# async def all_unit_stats_route():
+#     print('@app.get("/all_unit_stats")')
+#     data = all_unit_stats(my_db)
+#     return data
